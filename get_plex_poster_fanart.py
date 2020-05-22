@@ -7,7 +7,15 @@ import re
 import os
 import urllib.request
 
-library_name = ['Movies', 'TV Shows']  # Your library names
+"""
+
+Get Movie and TV Show poster and fantart images from Plex.
+Based on the work done here: https://github.com/blacktwin/JBOPS/blob/master/utility/plex_api_poster_pull.py
+
+"""
+
+library_name = ['Movies', 'Series']  # Your library names
+root_path = 'D:/Plex/'
 
 PLEX_URL = ''
 PLEX_TOKEN = ''
@@ -28,17 +36,25 @@ if sess.verify is False:
 
 plex = PlexServer(PLEX_URL, PLEX_TOKEN, session=sess)
 
+
+def check_path(path):
+    if not os.path.isdir(path):
+        os.mkdir(path)
+
+
+# Check if the root exits or a new one has to be created
+check_path(root_path)
+
 # Create paths for Movies and TV Shows inside current directory
-movie_path = '{}/Movies'.format(os.path.dirname(__file__))
-if not os.path.isdir(movie_path):
-    os.mkdir(movie_path)
-
-show_path = '{}/TV Shows'.format(os.path.dirname(__file__))
-if not os.path.isdir(show_path):
-    os.mkdir(show_path)
+movie_path = '{}/Movies'.format(os.path.dirname(root_path))
+check_path(movie_path)
 
 
-def savefile(path, url):
+show_path = '{}/TV Shows'.format(os.path.dirname(root_path))
+check_path(show_path)
+
+
+def save_file(path, url):
     # Check if file already exists
     if os.path.isfile(path):
         print("ERROR, %s already exist" % path)
@@ -50,9 +66,13 @@ def savefile(path, url):
 # Get all movies or shows from LIBRARY_NAME
 for library in library_name:
     for child in plex.library.section(library).all():
-        library_path = '{}/{}'.format(movie_path, library)
-        if not os.path.isdir(library_path):
-            os.mkdir(library_path)
+        library_path = ''
+        if child.type == 'movie':
+            library_path = '{}/{}'.format(movie_path, library)
+        elif child.type == 'show':
+            library_path = '{}/{}'.format(show_path, library)
+        # library_path = '{}/{}'.format(movie_path, library)
+        check_path(library_path)
         # Clean names of special characters
         name = re.sub('\W+', ' ', child.title)
         # Add (year) to name
@@ -65,20 +85,9 @@ for library in library_name:
         fanart_url = '{}{}?X-Plex-Token={}'.format(PLEX_URL, child.art, PLEX_TOKEN)
         print(fanart_url)
         # Select path based on media_type
-        if child.type == 'movie':
-            child_path = '{}/{}'.format(library_path, name)
-            if not os.path.isdir(child_path):
-                os.mkdir(child_path)
-            poster_path = u'{}/poster.jpg'.format(child_path)
-            savefile(poster_path, thumb_url)
-            fanart_path = u'{}/fanart.jpg'.format(child_path)
-            savefile(fanart_path, fanart_url)
-        elif child.type == 'show':
-            image_path = u'{}/{}.jpg'.format(show_path, name)
-            savefile(image_path)
-        # Check if file already exists
-        # if os.path.isfile(image_path):
-        #    print("ERROR, %s already exist" % image_path)
-        # else:
-        # Save to directory
-        #    urllib.request.urlretrieve(thumb_url, image_path)
+        child_path = '{}/{}'.format(library_path, name)
+        check_path(child_path)
+        poster_path = u'{}/poster.jpg'.format(child_path)
+        save_file(poster_path, thumb_url)
+        fanart_path = u'{}/fanart.jpg'.format(child_path)
+        save_file(fanart_path, fanart_url)
